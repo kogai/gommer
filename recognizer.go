@@ -3,6 +3,8 @@ package gommer
 import (
 	"fmt"
 	"golang.org/x/mobile/event/touch"
+	// "golang.org/x/mobile/exp/sprite/clock"
+	"time"
 )
 
 // type TouchEvent struct {
@@ -40,10 +42,22 @@ var STATE_FAILED int = 32
 // 後でstruct作って入れる
 var state int = STATE_POSSIBLE
 
+/*
+- [x] hold(short/long)
+- [ ] swipe(direction)
+- [ ] dobble-tap
+*/
+
+const timeout time.Duration = 1000 * time.Millisecond
+
+var start time.Time
+
 func Recognize(e touch.Event) (err error) {
+
 	switch e.Type.String() {
 	case "begin":
 		state = STATE_BEGAN
+		go detectHold(time.Now())
 	case "move":
 		state = STATE_CHANGED
 	case "end":
@@ -51,12 +65,40 @@ func Recognize(e touch.Event) (err error) {
 	}
 
 	if state >= STATE_ENDED {
-		fmt.Println("end event detected.")
+		fmt.Println("end event detected.\n")
 		state = STATE_POSSIBLE
 		return nil
 	}
 	return nil
 }
+
+func detectHold(onTouchStart time.Time) {
+	for {
+		var now time.Time = time.Now()
+		// 一定時間が経過した
+		if now.Sub(onTouchStart) > timeout {
+			// イベントが終了していない
+			if state > STATE_POSSIBLE {
+				fmt.Printf("hold event detected. state: %d\n", state)
+			}
+			break
+		}
+	}
+}
+
+/*
+func isHold(onTouchStart time.Time) bool {
+	var now time.Time = time.Now()
+	if now.Sub(onTouchStart) > timeout {
+		return true
+	}
+	return false
+}
+
+func reset() {
+
+}
+*/
 
 /**
  * update the recognizer
