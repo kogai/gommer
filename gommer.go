@@ -1,16 +1,21 @@
 package gommer
 
 import (
-	"fmt"
+	"golang.org/x/mobile/event/touch"
 )
 
-type CallbackFn func(event string)
+type CallbackFn func(event touch.Event)
 
-func On(eventType string, secondEventType CallbackFn) {
-	fmt.Println(eventType)
-	secondEventType("pinchi-out")
+var fn CallbackFn
+
+func On(eventType string, callback CallbackFn) {
+	fn = callback
 }
 
 func Off(eventType string) {
 
+}
+
+func Emit(eventType string, e touch.Event) {
+	fn(e)
 }
