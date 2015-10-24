@@ -3,11 +3,11 @@ package gommer
 import (
 	"fmt"
 	"golang.org/x/mobile/event/touch"
-	// "golang.org/x/mobile/exp/sprite/clock"
+	"math"
 	"time"
 )
 
-// type TouchEvent struct {
+// type Recognizer struct {
 // }
 
 /*
@@ -48,16 +48,25 @@ var state int = STATE_POSSIBLE
 - [ ] dobble-tap
 */
 
-const timeout time.Duration = 1000 * time.Millisecond
+const timeout time.Duration = 500 * time.Millisecond
 
-var start time.Time
+var (
+	start  time.Time
+	touchX float32
+	touchY float32
+)
 
 func Recognize(e touch.Event) (err error) {
 
 	switch e.Type.String() {
 	case "begin":
+		touchX = e.X
+		touchY = e.Y
 		state = STATE_BEGAN
-		go detectHold(time.Now())
+		/*
+			var onTouchStart time.Time = time.Now()
+			go detectHold(onTouchStart, touchX, touchY)
+		*/
 	case "move":
 		state = STATE_CHANGED
 	case "end":
@@ -66,19 +75,28 @@ func Recognize(e touch.Event) (err error) {
 
 	if state >= STATE_ENDED {
 		fmt.Println("end event detected.\n")
+		go detectSwipe(touchX, touchY, e.X, e.Y)
 		state = STATE_POSSIBLE
 		return nil
 	}
 	return nil
 }
 
-func detectHold(onTouchStart time.Time) {
+func detectSwipe(srcX, srcY, destX, destY float32) {
+	var degree float32 = getDegree(srcX, srcY, destX, destY)
+	var direction string = getDirection(degree)
+	fmt.Printf("swipe event direction to: %s\n", direction)
+}
+
+func detectHold(onTouchStart time.Time, touchX float32, touchY float32) {
 	for {
 		var now time.Time = time.Now()
 		// 一定時間が経過した
 		if now.Sub(onTouchStart) > timeout {
 			// イベントが終了していない
 			if state > STATE_POSSIBLE {
+				// タップ位置が動いていない
+				// TODO event publish
 				fmt.Printf("hold event detected. state: %d\n", state)
 			}
 			break
@@ -86,15 +104,38 @@ func detectHold(onTouchStart time.Time) {
 	}
 }
 
-/*
-func isHold(onTouchStart time.Time) bool {
-	var now time.Time = time.Now()
-	if now.Sub(onTouchStart) > timeout {
-		return true
-	}
-	return false
+func getDegree(srcX, srcY, destX, destY float32) float32 {
+	var distanseX float64 = float64(destX - srcX)
+	var distanseY float64 = float64(destY - srcY)
+	radian := math.Atan2(distanseX, distanseY)
+	degree := radian * 180 / math.Pi
+	return float32(degree)
 }
 
+func getDirection(degree float32) string {
+	/*
+		45 ~ 135 up
+		135 ~ -135 left
+		-135 ~ -45 down
+		-45 ~ 45 right
+	*/
+	var direction string
+	if degree > 45 && degree < 135 {
+		direction = "up"
+	}
+	if degree > 135 && degree < -135 {
+		direction = "left"
+	}
+	if degree > -135 && degree < -45 {
+		direction = "down"
+	}
+	if degree > -45 && degree < 45 {
+		direction = "right"
+	}
+	return direction
+}
+
+/*
 func reset() {
 
 }
