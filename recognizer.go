@@ -44,7 +44,7 @@ var state int = STATE_POSSIBLE
 
 /*
 - [x] hold(short/long)
-- [ ] swipe(direction)
+- [x] swipe(direction)
 - [ ] dobble-tap
 */
 
@@ -69,13 +69,15 @@ func Recognize(e touch.Event) (err error) {
 		*/
 	case "move":
 		state = STATE_CHANGED
+		/*
+			go detectSwipe(touchX, touchY, e.X, e.Y)
+		*/
 	case "end":
 		state = STATE_RECOGNIZED
 	}
 
 	if state >= STATE_ENDED {
 		fmt.Println("end event detected.\n")
-		go detectSwipe(touchX, touchY, e.X, e.Y)
 		state = STATE_POSSIBLE
 		return nil
 	}
@@ -85,7 +87,9 @@ func Recognize(e touch.Event) (err error) {
 func detectSwipe(srcX, srcY, destX, destY float32) {
 	var degree float32 = getDegree(srcX, srcY, destX, destY)
 	var direction string = getDirection(degree)
-	fmt.Printf("swipe event direction to: %s\n", direction)
+	state = STATE_RECOGNIZED
+	// TODO event publish
+	fmt.Printf("[%g]swipe event direction to: %s\n", degree, direction)
 }
 
 func detectHold(onTouchStart time.Time, touchX float32, touchY float32) {
@@ -98,6 +102,7 @@ func detectHold(onTouchStart time.Time, touchX float32, touchY float32) {
 				// タップ位置が動いていない
 				// TODO event publish
 				fmt.Printf("hold event detected. state: %d\n", state)
+				state = STATE_RECOGNIZED
 			}
 			break
 		}
@@ -109,28 +114,32 @@ func getDegree(srcX, srcY, destX, destY float32) float32 {
 	var distanseY float64 = float64(destY - srcY)
 	radian := math.Atan2(distanseX, distanseY)
 	degree := radian * 180 / math.Pi
+	if degree < 0 {
+		degree = degree * -1
+		degree = 360 - degree
+	}
 	return float32(degree)
 }
 
 func getDirection(degree float32) string {
 	/*
-		45 ~ 135 up
-		135 ~ -135 left
-		-135 ~ -45 down
-		-45 ~ 45 right
+		135 ~ 225 up
+		45 ~ 135 right
+		315 ~ 45 down
+		225 ~ 315 left
 	*/
 	var direction string
-	if degree > 45 && degree < 135 {
+	if degree > 135 && degree < 225 {
 		direction = "up"
 	}
-	if degree > 135 && degree < -135 {
-		direction = "left"
+	if degree > 45 && degree < 135 {
+		direction = "right"
 	}
-	if degree > -135 && degree < -45 {
+	if degree > 315 || degree < 45 {
 		direction = "down"
 	}
-	if degree > -45 && degree < 45 {
-		direction = "right"
+	if degree > 225 && degree < 315 {
+		direction = "left"
 	}
 	return direction
 }
