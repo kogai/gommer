@@ -45,7 +45,7 @@ var state int = STATE_POSSIBLE
 /*
 - [x] hold(short/long)
 - [x] swipe(direction)
-- [ ] dobble-tap
+- [x] dobble-tap
 */
 
 const timeout time.Duration = 500 * time.Millisecond
@@ -63,6 +63,7 @@ func Recognize(e touch.Event) (err error) {
 		touchX = e.X
 		touchY = e.Y
 		state = STATE_BEGAN
+
 		/*
 			var onTouchStart time.Time = time.Now()
 			go detectHold(onTouchStart, touchX, touchY)
@@ -74,6 +75,7 @@ func Recognize(e touch.Event) (err error) {
 		*/
 	case "end":
 		state = STATE_RECOGNIZED
+		go detectDoubleTap(touchX, touchY)
 	}
 
 	if state >= STATE_ENDED {
@@ -84,6 +86,23 @@ func Recognize(e touch.Event) (err error) {
 	return nil
 }
 
+func detectDoubleTap(touchX, touchY float32) {
+	var onTouchStart time.Time = time.Now()
+	for {
+		var now time.Time = time.Now()
+		// 一定時間が経過していない
+		if now.Sub(onTouchStart) < timeout {
+			// 次のイベントが開始した
+			if state == STATE_BEGAN {
+				fmt.Printf("double tap event detected. state: %d\n", state)
+				break
+			}
+		} else {
+			break
+		}
+	}
+}
+
 func detectSwipe(srcX, srcY, destX, destY float32) {
 	var degree float32 = getDegree(srcX, srcY, destX, destY)
 	var direction string = getDirection(degree)
@@ -92,7 +111,7 @@ func detectSwipe(srcX, srcY, destX, destY float32) {
 	fmt.Printf("[%g]swipe event direction to: %s\n", degree, direction)
 }
 
-func detectHold(onTouchStart time.Time, touchX float32, touchY float32) {
+func detectHold(onTouchStart time.Time, touchX, touchY float32) {
 	for {
 		var now time.Time = time.Now()
 		// 一定時間が経過した
@@ -148,36 +167,4 @@ func getDirection(degree float32) string {
 func reset() {
 
 }
-*/
-
-/**
- * update the recognizer
- * @param {Object} inputData
- */
-/*
-func recognize(inputData) {
-     // make a new copy of the inputData
-     // so we can change the inputData without messing up the other recognizers
-     var inputDataClone = extend({}, inputData);
-
-     // is is enabled and allow recognizing?
-     if (!boolOrFn(this.options.enable, [this, inputDataClone])) {
-         this.reset();
-         this.state = STATE_FAILED;
-         return;
-     }
-
-     // reset when we've reached the end
-     if (this.state & (STATE_RECOGNIZED | STATE_CANCELLED | STATE_FAILED)) {
-         this.state = STATE_POSSIBLE;
-     }
-
-     this.state = this.process(inputDataClone);
-
-     // the recognizer has recognized a gesture
-     // so trigger an event
-     if (this.state & (STATE_BEGAN | STATE_CHANGED | STATE_ENDED | STATE_CANCELLED)) {
-         this.tryEmit(inputDataClone);
-     }
- }
 */
